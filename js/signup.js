@@ -3,9 +3,9 @@
     This script will load the state select list and validate the form before submission
 */
 
-"use strict"
+"use strict";
 
-function onReady() {
+document.addEventListener('DOMContentLoaded', function() {
 	var form = document.getElementById('signup');
 	var statesSelect = form.elements['state'];
 	var idx;
@@ -20,13 +20,9 @@ function onReady() {
 		statesSelect.appendChild(option);
 	}
 
-	form.addEventListener('submit', onSubmit);
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-	document.addEventListener('change', function() {
-		var occupation = document.getElementById('occupation');
-		var otherOccupation = document.getElementsByName('occupationOther')[0];
+	form.addEventListener('change', function() {
+		var occupation = form.elements['occupation'];
+		var otherOccupation = form.elements['occupationOther'];
 
 		if (occupation.value == 'other') {
 			otherOccupation.style.display = 'block';
@@ -35,29 +31,27 @@ document.addEventListener('DOMContentLoaded', function() {
 			otherOccupation.style.display = 'none';
 		}
 	});
-});
 
-document.addEventListener('DOMContentLoaded', function() {
 	var cancelButton = document.getElementById('cancelButton');
+
 	cancelButton.addEventListener('click', function() {
-		if (window.confirm('Do you really want to leave this page??')) {
+		if (window.confirm('Are you sure you want to leave this page??')) {
 			window.location = 'http://google.com';
 		}
 	});
+
+	form.addEventListener('submit', onSubmit);
 });
 
 function onSubmit(eventObject) {
+	var valid = true;
+
 	try {
 		var valid = validateForm(this);
 	}
 	catch (exception) {
+		console.log(exception);
 		valid = false;
-	}
-
-	if (!valid) {
-		var errMsg = document.getElementById('error-message');
-		errMsg.innerHTML = 'Please provide values for the required fields!';
-		errMsg.style.display = 'block';
 	}
 
 	if (!valid && eventObject.preventDefault) {
@@ -66,27 +60,39 @@ function onSubmit(eventObject) {
 
 	eventObject.returnValue = valid;
 	return valid;
-}
+} // onSubmit
 
 function validateForm(form) {
 	var requiredFields = ['firstName', 'lastName', 'address1', 'city', 'state', 'zip', 'birthdate'];
+
+	var occupation = form.elements['occupation'];
+	if (occupation.value == 'other') {
+		requiredFields.push(['occupationOther']);
+	}
+
 	var idx;
 	var valid = true;
-
-	for (idx = 0; idx < requriedFields.length; ++idx) {
+	for (idx = 0; idx < requiredFields.length; ++idx) {
 		valid &= validateRequiredField(form.elements[requiredFields[idx]]);
 	}
 
-	var occupation = document.getElementById('occupation');
-	var otherOccupation = document.getElementsByName('occupationOther')[0];
 
-	if (occupation.value == 'other') {
-		var otherOccupation = document.getElementsByName('occupationOther')[0];
-		if (!otherOccupation.value.trim().length > 0) {
-			otherOccupation.className = 'form-control invalid-field';
-			valid = false;
-		}
+	var zipRegExp = new RegExp('^\\d(5)$');
+	var validZip = form.elements['zip'];
+	if (!zipRegExp.test(validZip.value)) {
+		valid = false;
+		validZip.className = 'form-control invalid';
 	}
+
+	var birthday = form.elements['birthdate'];
+	var years = moment().diff(birthday.value, 'years');
+	if (years < 13) {
+		valid = false;
+		birthday.className = 'form-control invalid';
+		var msg = document.getElementById('birthdateMessage');
+		msg.innerHTML = 'You must be 13 years or older to sign up!';
+	}
+
 	return valid;
 }
 
@@ -96,37 +102,6 @@ function validateRequiredField(field) {
 	var valid = value.length > 0;
 
 	if (valid) {
-		if (field.name == 'zip') {
-			var zipValue = field.value;
-			var zipRegExp = new RegExp('^\\d{5}$');
-			var validZip = zipRegExp.test(zipValue);
-
-			if (!validZip) {
-				field.className = 'form-control invalid-field';
-				return !valid;
-			}
-		}
-
-		if (field.name == 'birthdate') {
-			var dob = new Date(field.value);
-			var today = new Date();
-			var yearsDiff = today.getFullYear() - dob.getUTCFullYear();
-	    	var monthsDiff = today.getMonth() - dob.getUTCMonth();
-	    	var daysDiff = today.getDate() - dob.getUTCDate();
-
-	    	if (monthsDiff < 0 || (0 == monthsDiff && daysDiff < 0)) {
-	        	yearsDiff--;
-	    	}
-
-	    	if (yearsDiff < 13) {
-	    		field.className = 'form-control invalid-field';
-	    		var birthDateMsg = document.getElementById('birthdateMessage');
-	    		birthdateMsg.innerHTML = 'User is only ' + yearsDiff + ' years old! Must be 13 to signup!';
-	    		birthdateMsg.style.display = 'block';
-	    		return !valid;
-	    	}
-	    }
-
 		field.className = 'form-control';
 	}
 	else {
@@ -134,5 +109,3 @@ function validateRequiredField(field) {
 	}
 	return valid;
 }
-
-document.addEventListener('DOMContentLoaded', onReady);
